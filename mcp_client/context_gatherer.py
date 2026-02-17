@@ -160,3 +160,48 @@ async def gather_patterns_context(config: dict | None = None) -> str:
             parts.append(f"### Cross-Domain Analogy\n\n{value}")
 
     return "\n\n---\n\n".join(parts)
+
+
+async def gather_paradigm_patterns(config: dict | None = None) -> dict[str, str]:
+    """Fetch paradigm-specific patterns from the patterns-knowledge MCP server.
+
+    Returns dict mapping paradigm name to patterns text, used by Stage 0b
+    (Prompt Enhancement) to enrich each agent's system prompt with relevant patterns.
+    """
+    if config is None:
+        import yaml
+        config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+
+    mcp_cfg = config["mcp"]
+    base_dir = Path(__file__).resolve().parent.parent
+    patterns_dir = str(base_dir / mcp_cfg["patterns_knowledge"]["data_dir"])
+
+    paradigm_queries = {
+        "streaming": [("get_patterns_by_paradigm", {"paradigm": "streaming"})],
+        "event_sourcing": [("get_patterns_by_paradigm", {"paradigm": "event-sourcing"})],
+        "declarative": [("get_patterns_by_paradigm", {"paradigm": "declarative"})],
+        "wildcard": [
+            ("get_cross_domain_analogies", {"source_domain": "biological", "target_concept": "data pipeline"}),
+            ("get_cross_domain_analogies", {"source_domain": "economic", "target_concept": "resource allocation"}),
+            ("get_emerging_patterns", None),
+        ],
+    }
+
+    results: dict[str, str] = {}
+
+    for agent_name, tool_calls in paradigm_queries.items():
+        try:
+            server_results = await _connect_and_call(
+                "mcp_servers.patterns_knowledge",
+                patterns_dir,
+                tool_calls,
+            )
+            # Combine all results for this paradigm
+            parts = [v for v in server_results.values() if v and not v.startswith("[Error")]
+            results[agent_name] = "\n\n---\n\n".join(parts) if parts else ""
+        except Exception as e:
+            results[agent_name] = f"[Error gathering patterns for {agent_name}: {e}]"
+
+    return results
