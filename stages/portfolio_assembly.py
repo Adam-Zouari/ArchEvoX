@@ -8,7 +8,12 @@ import json
 import logging
 
 from llm.client import call_llm
-from models.schemas import AnnotatedProposal, Portfolio
+from models.schemas import (
+    AnnotatedProposal,
+    Portfolio,
+    DebateResult,
+    AllDomainCriticsResult,
+)
 from prompts.portfolio_ranker import PORTFOLIO_RANKER_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -19,8 +24,19 @@ async def run_portfolio_assembly(
     enterprise_context: str,
     score_weights: dict[str, float] | None = None,
     temperature: float = 0.3,
+    debate_results: list[DebateResult] | None = None,
+    domain_critic_results: dict[str, AllDomainCriticsResult] | None = None,
 ) -> Portfolio:
-    """Score, tier, and rank all proposals into a final portfolio."""
+    """Score, tier, and rank all proposals into a final portfolio.
+
+    Args:
+        annotated_proposals: Proposals with physics critic annotations.
+        enterprise_context: Full enterprise context string.
+        score_weights: Weights for composite score dimensions.
+        temperature: LLM temperature for ranking.
+        debate_results: Results from Stage 4.5 (structured debate).
+        domain_critic_results: Results from Stage 4.7 (domain critics).
+    """
     if score_weights is None:
         score_weights = {
             "innovation": 0.35,
@@ -35,6 +51,34 @@ async def run_portfolio_assembly(
         indent=2,
     )
 
+    # Build debate context (from Stage 4.5)
+    debate_context = ""
+    if debate_results:
+        debate_context = "\n\n## Structured Debate Results\n"
+        for dr in debate_results:
+            debate_context += (
+                f"\n--- Debate for {dr.architecture_name} ---\n"
+                f"Innovation defense: {dr.judgment.innovation_defense_strength}/10\n"
+                f"Status quo weakness exposed: {dr.judgment.status_quo_weakness_exposed}/10\n"
+                f"Risk mitigation quality: {dr.judgment.risk_mitigation_quality}/10\n"
+                f"Winner: {dr.judgment.debate_winner}\n"
+                f"Key insight: {dr.judgment.key_insight}\n"
+                f"Residual concerns: {', '.join(dr.judgment.residual_concerns)}\n"
+            )
+
+    # Build domain critic context (from Stage 4.7)
+    domain_context = ""
+    if domain_critic_results:
+        domain_context = "\n\n## Domain Critic Annotations\n"
+        for arch_name, acr in domain_critic_results.items():
+            domain_context += (
+                f"\n--- Domain Critics for {arch_name} ---\n"
+                f"Critical: {acr.total_critical}, Warning: {acr.total_warning}, "
+                f"Info: {acr.total_info}\n"
+            )
+            for cr in acr.critic_results:
+                domain_context += f"  [{cr.critic_domain}] {cr.overall_assessment}\n"
+
     portfolio = await call_llm(
         system_prompt=PORTFOLIO_RANKER_PROMPT,
         user_message=(
@@ -42,6 +86,8 @@ async def run_portfolio_assembly(
             f"{enterprise_context}\n\n"
             "Here are all the annotated architectural proposals to evaluate:\n\n"
             f"{proposals_json}"
+            f"{debate_context}"
+            f"{domain_context}"
         ),
         response_model=Portfolio,
         temperature=temperature,
