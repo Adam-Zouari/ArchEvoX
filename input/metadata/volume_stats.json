@@ -1,0 +1,27 @@
+{
+  "ingestion_rates": {
+    "fivetran_total": "~2M rows/hour across all connectors",
+    "debezium_cdc": "~500K events/hour from PostgreSQL",
+    "product_events": "~50M events/day (peak: 8M/hour during business hours)",
+    "api_calls": "~100K requests/hour to internal data API"
+  },
+  "storage_sizes": {
+    "postgresql": "2TB (growing ~50GB/month)",
+    "snowflake_raw": "8TB",
+    "snowflake_transformed": "5TB",
+    "snowflake_analytics": "2TB",
+    "s3_raw": "8TB",
+    "kafka_retention": "500GB (7-day retention)"
+  },
+  "query_patterns": {
+    "looker_queries": "~5K queries/day against analytics warehouse",
+    "ad_hoc_queries": "~200 queries/day from data scientists",
+    "api_queries": "~2.4M queries/day (mostly aggregated metrics)",
+    "peak_concurrent_queries": 25
+  },
+  "peak_load": {
+    "weekday_peak": "10AM-2PM EST",
+    "monthly_peak": "First week of month (financial reporting)",
+    "burst_events": "Marketing campaigns can 3x normal event volume"
+  }
+}

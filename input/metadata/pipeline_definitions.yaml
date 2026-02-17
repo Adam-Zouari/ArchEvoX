@@ -1,0 +1,56 @@
+pipelines:
+  - name: fivetran_sync_all
+    schedule: "hourly"
+    type: ingestion
+    sources: [salesforce, hubspot, stripe, google_analytics]
+    destination: snowflake_raw
+
+  - name: debezium_cdc
+    schedule: "continuous"
+    type: cdc
+    source: postgresql
+    destination: kafka
+    topics: [users, orders, subscriptions, events]
+
+  - name: dbt_staging
+    schedule: "hourly (after fivetran)"
+    type: transformation
+    models: 120
+    dependencies: [fivetran_sync_all]
+
+  - name: dbt_intermediate
+    schedule: "hourly (after staging)"
+    type: transformation
+    models: 150
+    dependencies: [dbt_staging]
+
+  - name: dbt_marts
+    schedule: "hourly (after intermediate)"
+    type: transformation
+    models: 130
+    dependencies: [dbt_intermediate]
+
+  - name: census_reverse_etl
+    schedule: "daily at 7AM EST"
+    type: reverse_etl
+    source: snowflake_analytics
+    destinations: [salesforce, hubspot, intercom]
+
+  - name: ml_feature_pipeline
+    schedule: "every 4 hours"
+    type: ml_features
+    source: snowflake_transformed
+    destination: s3_ml_artifacts
+    features: 85
+
+  - name: executive_dashboard_refresh
+    schedule: "hourly"
+    type: reporting
+    source: snowflake_analytics
+    destination: looker
+
+  - name: data_quality_checks
+    schedule: "after each dbt run"
+    type: quality
+    tests: 350
+    alert_channel: slack_data_alerts

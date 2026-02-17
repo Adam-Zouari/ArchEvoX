@@ -1,0 +1,25 @@
+{
+  "compute": [
+    {"name": "Airflow", "version": "2.7", "deployment": "Kubernetes (EKS)", "workers": 8},
+    {"name": "dbt Cloud", "version": "1.6", "deployment": "SaaS", "concurrent_jobs": 4}
+  ],
+  "databases": [
+    {"name": "PostgreSQL", "version": "15.4", "deployment": "RDS", "instance": "r6g.2xlarge", "storage": "2TB"},
+    {"name": "Snowflake", "edition": "Enterprise", "warehouses": ["ETL_WH (XL)", "ANALYTICS_WH (M)", "DS_WH (L)"], "storage": "15TB"}
+  ],
+  "streaming": [
+    {"name": "Apache Kafka", "version": "3.5", "deployment": "MSK", "brokers": 3, "topics": 25, "partitions_avg": 6}
+  ],
+  "storage": [
+    {"name": "S3", "buckets": ["raw-data-lake", "processed-exports", "ml-artifacts"], "total_size": "8TB"}
+  ],
+  "connectors": [
+    {"name": "Fivetran", "connectors": 15, "sync_frequency": "hourly"},
+    {"name": "Debezium", "version": "2.3", "sources": ["PostgreSQL"], "topics": 12},
+    {"name": "Census", "destinations": ["Salesforce", "HubSpot", "Intercom"], "sync_frequency": "daily"}
+  ],
+  "observability": [
+    {"name": "Datadog", "purpose": "Infrastructure monitoring"},
+    {"name": "PagerDuty", "purpose": "Alerting and on-call"}
+  ]
+}

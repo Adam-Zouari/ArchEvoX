@@ -1,0 +1,37 @@
+{
+  "databases": [
+    {
+      "name": "postgres_production",
+      "type": "PostgreSQL 15",
+      "tables": [
+        {"name": "users", "rows": "2.5M", "columns": ["id", "email", "name", "created_at", "plan_type", "region"]},
+        {"name": "orders", "rows": "15M", "columns": ["id", "user_id", "amount", "currency", "status", "created_at"]},
+        {"name": "events", "rows": "500M", "columns": ["id", "user_id", "event_type", "properties", "timestamp"]},
+        {"name": "subscriptions", "rows": "1.8M", "columns": ["id", "user_id", "plan_id", "start_date", "end_date", "status"]}
+      ]
+    },
+    {
+      "name": "snowflake_raw",
+      "type": "Snowflake",
+      "schemas": ["salesforce_raw", "hubspot_raw", "stripe_raw", "google_analytics_raw", "internal_api_raw"]
+    },
+    {
+      "name": "snowflake_transformed",
+      "type": "Snowflake",
+      "schemas": ["staging", "intermediate", "marts"],
+      "dbt_models": 400
+    },
+    {
+      "name": "snowflake_analytics",
+      "type": "Snowflake",
+      "schemas": ["finance", "marketing", "product", "executive"],
+      "dashboards_dependent": 50
+    }
+  ],
+  "key_relationships": [
+    "users.id -> orders.user_id",
+    "users.id -> events.user_id",
+    "users.id -> subscriptions.user_id",
+    "orders.id -> stripe_raw.charges.metadata.order_id"
+  ]
+}
