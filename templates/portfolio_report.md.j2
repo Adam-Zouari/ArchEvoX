@@ -1,0 +1,113 @@
+# Architecture Innovation Portfolio Report
+
+---
+
+## Executive Summary
+
+{{ portfolio.executive_summary }}
+
+---
+
+## Top Picks by Tier
+
+| Tier | Top Pick |
+|------|----------|
+| Conservative | {{ portfolio.top_conservative or "N/A" }} |
+| Moderate Innovation | {{ portfolio.top_moderate or "N/A" }} |
+| Radical | {{ portfolio.top_radical or "N/A" }} |
+
+---
+
+## Innovation-Risk Frontier
+
+| # | Architecture | Innovation | Feasibility | Business Align. | Migration | Composite | Tier |
+|---|-------------|:----------:|:-----------:|:---------------:|:---------:|:---------:|------|
+{% for sp in portfolio.proposals %}
+| {{ loop.index }} | {{ sp.proposal.proposal.architecture_name }} | {{ "%.1f"|format(sp.innovation_score) }} | {{ "%.1f"|format(sp.feasibility_score) }} | {{ "%.1f"|format(sp.business_alignment_score) }} | {{ "%.1f"|format(sp.migration_complexity_score) }} | {{ "%.1f"|format(sp.composite_score) }} | {{ sp.tier }} |
+{% endfor %}
+
+---
+
+## Full Proposal Details
+
+{% for sp in portfolio.proposals %}
+### {{ loop.index }}. {{ sp.proposal.proposal.architecture_name }}
+
+> {{ sp.one_line_summary }}
+
+**Tier**: {{ sp.tier }} | **Composite Score**: {{ "%.2f"|format(sp.composite_score) }}
+
+| Dimension | Score |
+|-----------|:-----:|
+| Innovation | {{ "%.1f"|format(sp.innovation_score) }} |
+| Feasibility | {{ "%.1f"|format(sp.feasibility_score) }} |
+| Business Alignment | {{ "%.1f"|format(sp.business_alignment_score) }} |
+| Migration Complexity | {{ "%.1f"|format(sp.migration_complexity_score) }} |
+
+#### Core Thesis
+
+{{ sp.proposal.proposal.core_thesis }}
+
+#### Components
+
+| Component | Role | Technology |
+|-----------|------|-----------|
+{% for c in sp.proposal.proposal.components %}
+| {{ c.name }} | {{ c.role }} | {{ c.technology_suggestion or "—" }} |
+{% endfor %}
+
+#### Data Flow
+
+{% for step in sp.proposal.proposal.data_flow %}
+{{ step.step_number }}. **{{ step.from_component }}** → **{{ step.to_component }}** ({{ step.pattern }})
+   {{ step.description }}
+{% endfor %}
+
+#### Key Innovations
+
+{% for innovation in sp.proposal.proposal.key_innovations %}
+- {{ innovation }}
+{% endfor %}
+
+#### Assumptions
+
+{% for assumption in sp.proposal.proposal.assumptions %}
+- {{ assumption }}
+{% endfor %}
+
+#### Risks
+
+| Risk | Severity | Mitigation |
+|------|:--------:|-----------|
+{% for risk in sp.proposal.proposal.risks %}
+| {{ risk.description }} | {{ risk.severity }} | {{ risk.mitigation }} |
+{% endfor %}
+
+{% if sp.proposal.annotations %}
+#### Physics Critic Annotations
+
+**Hard constraint violations**: {{ sp.proposal.hard_constraint_violations }}
+**Feasibility note**: {{ sp.proposal.overall_feasibility_note }}
+
+| Type | Description | Severity | Affected Components | Mitigation |
+|------|------------|:--------:|--------------------:|-----------|
+{% for ann in sp.proposal.annotations %}
+| {{ ann.constraint_type }} | {{ ann.description }} | {% if ann.severity == "critical" %}**{{ ann.severity }}**{% elif ann.severity == "warning" %}*{{ ann.severity }}*{% else %}{{ ann.severity }}{% endif %} | {{ ann.affected_components | join(", ") }} | {{ ann.suggested_mitigation or "—" }} |
+{% endfor %}
+{% endif %}
+
+---
+
+{% endfor %}
+
+## Methodology
+
+This portfolio was generated using an innovation-optimized multi-agent architecture generator:
+
+1. **Paradigm Agent Generation**: 4 agents with radically different architectural philosophies (streaming-first, event-sourced, declarative, cross-domain wildcard) generated initial proposals in parallel.
+2. **Idea Mutation**: Each proposal was mutated using randomly selected operators (invert, merge, eliminate, analogize, temporalize, abstract) to expand the solution space.
+3. **Self-Refinement**: Each candidate underwent 2 rounds of self-critique to strengthen coherence and specificity without reducing ambition.
+4. **Physics Critic**: A physics-of-computing critic annotated each proposal with hard constraint violations (CAP theorem, complexity bounds, network physics) without rejecting any proposals.
+5. **Portfolio Assembly**: All proposals were scored on innovation, feasibility, business alignment, and migration complexity, then ranked and tiered.
+
+The system is explicitly optimized for **architectural innovation and paradigm shifts**, not just optimization of existing patterns.
