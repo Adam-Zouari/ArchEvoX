@@ -19,18 +19,32 @@ async def run_paradigm_agents(
     patterns_context: str,
     enabled_agents: list[str],
     temperature: float = 0.9,
+    enriched_prompts: dict[str, str] | None = None,
 ) -> list[Proposal]:
-    """Run all enabled paradigm agents in parallel, return typed Proposals."""
+    """Run all enabled paradigm agents in parallel, return typed Proposals.
+
+    Args:
+        enterprise_context: Full enterprise context string.
+        patterns_context: Patterns knowledge context string.
+        enabled_agents: List of agent names to run.
+        temperature: LLM temperature for generation.
+        enriched_prompts: If provided (from Stage 0b), use these instead
+                          of the static AGENT_PROMPTS templates.
+    """
 
     agents = []
     for agent_name in enabled_agents:
-        system_prompt = AGENT_PROMPTS.get(agent_name)
-        if system_prompt is None:
-            logger.warning(f"Unknown agent '{agent_name}', skipping.")
-            continue
-        # Wildcard agent gets extra patterns context
+        # Use enriched prompt if available, otherwise fall back to static template
+        if enriched_prompts and agent_name in enriched_prompts:
+            system_prompt = enriched_prompts[agent_name]
+        else:
+            system_prompt = AGENT_PROMPTS.get(agent_name)
+            if system_prompt is None:
+                logger.warning(f"Unknown agent '{agent_name}', skipping.")
+                continue
+        # Wildcard agent gets extra patterns context (only if not using enriched prompts)
         context = enterprise_context
-        if agent_name == "wildcard":
+        if agent_name == "wildcard" and not enriched_prompts:
             context = enterprise_context + "\n\n---\n\n" + patterns_context
         agents.append((agent_name, system_prompt, context))
 
