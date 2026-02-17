@@ -1,4 +1,9 @@
 from .schemas import (
+    # Intent Agent (Stage 0a)
+    ParadigmShiftCandidate,
+    InnovationOpportunity,
+    IntentBrief,
+    # Core schemas
     Component,
     DataFlowStep,
     Risk,
@@ -9,9 +14,26 @@ from .schemas import (
     AnnotatedProposal,
     ScoredProposal,
     Portfolio,
+    # Diversity Archive (Stage 2.5)
+    DiversityScores,
+    DiversityArchiveInput,
+    DiversityArchiveResult,
+    # Structured Debate (Stage 4.5)
+    ArgumentText,
+    DebateRound,
+    SteelMan,
+    DebateJudgment,
+    DebateResult,
+    # Domain Critics (Stage 4.7)
+    DomainCriticAnnotation,
+    DomainCriticResult,
+    AllDomainCriticsResult,
 )
 
 __all__ = [
+    "ParadigmShiftCandidate",
+    "InnovationOpportunity",
+    "IntentBrief",
     "Component",
     "DataFlowStep",
     "Risk",
@@ -22,4 +44,15 @@ __all__ = [
     "AnnotatedProposal",
     "ScoredProposal",
     "Portfolio",
+    "DiversityScores",
+    "DiversityArchiveInput",
+    "DiversityArchiveResult",
+    "ArgumentText",
+    "DebateRound",
+    "SteelMan",
+    "DebateJudgment",
+    "DebateResult",
+    "DomainCriticAnnotation",
+    "DomainCriticResult",
+    "AllDomainCriticsResult",
 ]
