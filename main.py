@@ -1,4 +1,4 @@
-"""Main orchestrator — runs the full 5-stage innovation architecture pipeline."""
+"""Main orchestrator — runs the full multi-stage innovation architecture pipeline."""
 
 import asyncio
 import json
@@ -13,11 +13,20 @@ _package_root = Path(__file__).resolve().parent
 if str(_package_root) not in sys.path:
     sys.path.insert(0, str(_package_root))
 
-from mcp_client.context_gatherer import gather_enterprise_context, gather_patterns_context
+from mcp_client.context_gatherer import (
+    gather_enterprise_context,
+    gather_patterns_context,
+    gather_paradigm_patterns,
+)
+from stages.intent_agent import run_intent_agent
+from stages.prompt_enhancement import enhance_prompts
 from stages.paradigm_agents import run_paradigm_agents
 from stages.mutation_engine import run_mutations
+from stages.diversity_archive import run_diversity_archive
 from stages.self_refinement import run_self_refinement
 from stages.physics_critic import run_physics_critic
+from stages.structured_debate import run_structured_debate
+from stages.domain_critics import run_all_domain_critics
 from stages.portfolio_assembly import run_portfolio_assembly
 from utils.report_renderer import render_portfolio_report
 
@@ -50,6 +59,33 @@ async def run_pipeline():
     )
     logger.info("Enterprise context gathered successfully.")
 
+    # Fetch paradigm-specific patterns for prompt enhancement
+    paradigm_patterns: dict[str, str] = {}
+    if pipeline_cfg.get("prompt_enhancement", {}).get("enabled", False):
+        logger.info("Fetching paradigm-specific patterns for prompt enhancement...")
+        paradigm_patterns = await gather_paradigm_patterns(config)
+
+    # ── NEW: Stage 0a — Intent Agent ──
+    intent_brief = None
+    intent_cfg = pipeline_cfg.get("intent_agent", {})
+    if intent_cfg.get("enabled", False):
+        logger.info("Stage 0a: Running intent agent...")
+        intent_brief = await run_intent_agent(
+            enterprise_context=enterprise_context,
+            temperature=intent_cfg.get("temperature", 0.4),
+        )
+        logger.info(f"  -> Core objective: {intent_brief.core_objective[:120]}...")
+        logger.info(
+            f"  -> {len(intent_brief.paradigm_shift_candidates)} paradigm shift candidates identified"
+        )
+
+    # ── NEW: Stage 0b — Prompt Enhancement ──
+    enriched_prompts = None
+    if pipeline_cfg.get("prompt_enhancement", {}).get("enabled", False) and intent_brief:
+        logger.info("Stage 0b: Enhancing paradigm agent prompts with intent + patterns...")
+        enriched_prompts = await enhance_prompts(intent_brief, paradigm_patterns)
+        logger.info(f"  -> {len(enriched_prompts)} enriched prompts composed")
+
     # ── Stage 1: Paradigm Agent Generation ──
     logger.info("Stage 1: Running paradigm agents in parallel...")
     original_proposals = await run_paradigm_agents(
@@ -57,6 +93,7 @@ async def run_pipeline():
         patterns_context=patterns_context,
         enabled_agents=pipeline_cfg["paradigm_agents"]["enabled_agents"],
         temperature=llm_cfg["temperature"]["paradigm_agents"],
+        enriched_prompts=enriched_prompts,
     )
     logger.info(f"  -> Generated {len(original_proposals)} original proposals")
 
@@ -78,11 +115,28 @@ async def run_pipeline():
         f"{len(all_proposals)} total candidates"
     )
 
+    # ── NEW: Stage 2.5 — Diversity Archive (MAP-Elites) ──
+    diversity_cfg = pipeline_cfg.get("diversity_archive", {})
+    if diversity_cfg.get("enabled", False):
+        logger.info("Stage 2.5: Running diversity archive (MAP-Elites selection)...")
+        diverse_proposals = await run_diversity_archive(
+            proposals=all_proposals,
+            starred_names=set(),  # No HITL stars in the automated pipeline
+            top_k=diversity_cfg.get("top_k", 10),
+            temperature=diversity_cfg.get("temperature", 0.2),
+        )
+        logger.info(
+            f"  -> Selected {len(diverse_proposals)} diverse candidates "
+            f"from {len(all_proposals)}"
+        )
+    else:
+        diverse_proposals = all_proposals
+
     # ── Stage 3: Self-Refinement ──
     rounds = pipeline_cfg["self_refinement"]["rounds"]
     logger.info(f"Stage 3: Running {rounds} rounds of self-refinement...")
     refined_proposals = await run_self_refinement(
-        proposals=all_proposals,
+        proposals=diverse_proposals,
         rounds=rounds,
         temperature=llm_cfg["temperature"]["self_refinement"],
     )
@@ -104,8 +158,50 @@ async def run_pipeline():
 
     if len(annotated_proposals) < 6:
         logger.warning(
-            f"Only {len(annotated_proposals)} proposals survived to Stage 5 "
+            f"Only {len(annotated_proposals)} proposals survived to later stages "
             f"(minimum recommended: 6). Continuing anyway."
+        )
+
+    # ── NEW: Stage 4.5 — Structured Debate ──
+    debate_results = []
+    debate_cfg = pipeline_cfg.get("structured_debate", {})
+    if debate_cfg.get("enabled", False):
+        logger.info("Stage 4.5: Running structured debates (asymmetric, innovation-favoring)...")
+        debate_temps = debate_cfg.get("temperature", {})
+        debate_results = await run_structured_debate(
+            annotated_proposals=annotated_proposals,
+            enterprise_context=enterprise_context,
+            advocate_temperature=debate_temps.get("advocate", 0.6),
+            devil_temperature=debate_temps.get("devil_advocate", 0.6),
+            judge_temperature=debate_temps.get("judge", 0.3),
+        )
+        debate_won = sum(
+            1 for d in debate_results if d.judgment.debate_winner == "innovation"
+        )
+        logger.info(
+            f"  -> {len(debate_results)} debates complete. "
+            f"Innovation won {debate_won}/{len(debate_results)}"
+        )
+
+    # ── NEW: Stage 4.7 — Domain Critics ──
+    domain_critic_results = {}
+    domain_cfg = pipeline_cfg.get("domain_critics", {})
+    if domain_cfg.get("enabled", False):
+        logger.info("Stage 4.7: Running domain critics (annotate-only)...")
+        domain_critic_results = await run_all_domain_critics(
+            annotated_proposals=annotated_proposals,
+            enterprise_context=enterprise_context,
+            debate_results=debate_results,
+            enabled_critics=domain_cfg.get("critics"),
+            temperature=domain_cfg.get("temperature", 0.3),
+        )
+        total_annotations = sum(
+            r.total_critical + r.total_warning + r.total_info
+            for r in domain_critic_results.values()
+        )
+        logger.info(
+            f"  -> {len(domain_critic_results)} proposals reviewed, "
+            f"{total_annotations} annotations total"
         )
 
     # ── Stage 5: Portfolio Assembly ──
@@ -115,6 +211,8 @@ async def run_pipeline():
         enterprise_context=enterprise_context,
         score_weights=pipeline_cfg["portfolio"]["score_weights"],
         temperature=llm_cfg["temperature"]["portfolio_ranker"],
+        debate_results=debate_results if debate_results else None,
+        domain_critic_results=domain_critic_results if domain_critic_results else None,
     )
 
     # ── Output ──
