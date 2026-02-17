@@ -1,0 +1,40 @@
+# LLM Configuration
+llm:
+  model: "anthropic/claude-sonnet-4-20250514"
+  temperature:
+    paradigm_agents: 0.9
+    mutation_engine: 0.85
+    self_refinement: 0.5
+    physics_critic: 0.3
+    portfolio_ranker: 0.3
+  max_retries: 3
+
+# MCP Server Configuration
+mcp:
+  enterprise_docs:
+    data_dir: "./input/enterprise_docs/"
+  metadata:
+    data_dir: "./input/metadata/"
+  patterns_knowledge:
+    data_dir: "./knowledge_base/"
+
+# Pipeline Configuration
+pipeline:
+  paradigm_agents:
+    enabled_agents: ["streaming", "event_sourcing", "declarative", "wildcard"]
+  mutation:
+    operators_per_proposal: 3
+    available_operators: ["invert", "merge", "eliminate", "analogize", "temporalize", "abstract"]
+  self_refinement:
+    rounds: 2
+  portfolio:
+    score_weights:
+      innovation: 0.35
+      feasibility: 0.25
+      business_alignment: 0.25
+      migration_complexity: 0.15
+
+# Output Configuration
+output:
+  dir: "./outputs/"
+  render_markdown_report: true
