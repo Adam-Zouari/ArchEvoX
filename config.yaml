@@ -1,6 +1,10 @@
 # LLM Configuration
+# For Ollama (local):  model: "ollama_chat/qwen3:1.7b"  (or any model you have installed)
+# For Anthropic:       model: "anthropic/claude-sonnet-4-20250514"
+# For OpenAI:          model: "openai/gpt-4"
 llm:
-  model: "anthropic/claude-sonnet-4-20250514"
+  model: "ollama_chat/qwen3:1.7b"
+  api_base: "http://localhost:11434"   # Ollama default. Remove or set to null for cloud APIs.
   temperature:
     paradigm_agents: 0.9
     mutation_engine: 0.85
@@ -20,13 +24,50 @@ mcp:
 
 # Pipeline Configuration
 pipeline:
+  # NEW — Stage 0a
+  intent_agent:
+    enabled: true
+    temperature: 0.4
+
+  # NEW — Stage 0b
+  prompt_enhancement:
+    enabled: true   # false = paradigm agents get static prompts (MVP behavior)
+
+  # EXISTING — unchanged
   paradigm_agents:
     enabled_agents: ["streaming", "event_sourcing", "declarative", "wildcard"]
+
+  # EXISTING — unchanged
   mutation:
     operators_per_proposal: 3
     available_operators: ["invert", "merge", "eliminate", "analogize", "temporalize", "abstract"]
+
+  # NEW — Stage 2.5
+  diversity_archive:
+    enabled: true
+    top_k: 10
+    temperature: 0.2
+
+  # EXISTING — unchanged
   self_refinement:
     rounds: 2
+
+  # NEW — Stage 4.5
+  structured_debate:
+    enabled: true
+    temperature:
+      advocate: 0.6
+      devil_advocate: 0.6
+      judge: 0.3
+    rounds: 3
+
+  # NEW — Stage 4.7
+  domain_critics:
+    enabled: true
+    critics: ["security", "cost", "org_readiness", "data_quality"]
+    temperature: 0.3
+
+  # EXISTING — unchanged
   portfolio:
     score_weights:
       innovation: 0.35
