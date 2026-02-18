@@ -46,4 +46,4 @@ async def call_llm(
     if _api_base:
         kwargs["api_base"] = _api_base
 
-    return await client(**kwargs)
+    return await client.chat.completions.create(**kwargs)
