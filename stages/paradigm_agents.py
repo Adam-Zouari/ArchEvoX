@@ -48,29 +48,27 @@ async def run_paradigm_agents(
             context = enterprise_context + "\n\n---\n\n" + patterns_context
         agents.append((agent_name, system_prompt, context))
 
-    tasks = [
-        call_llm(
-            system_prompt=system_prompt,
-            user_message=(
-                "Here is the enterprise context describing the current data pipeline "
-                "architecture, technologies, business goals, and constraints.\n\n"
-                f"{context}\n\n"
-                "Based on this, generate your architectural proposal."
-            ),
-            response_model=Proposal,
-            temperature=temperature,
-        )
-        for _, system_prompt, context in agents
-    ]
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
+    # Run agents SEQUENTIALLY (instructor doesn't support parallel)
     proposals = []
-    for (agent_name, _, _), result in zip(agents, results):
-        if isinstance(result, Exception):
-            logger.error(f"Agent '{agent_name}' failed: {result}")
+    for agent_name, system_prompt, context in agents:
+        logger.info(f"  Running agent: {agent_name}...")
+        try:
+            result = await call_llm(
+                system_prompt=system_prompt,
+                user_message=(
+                    "Here is the enterprise context describing the current data pipeline "
+                    "architecture, technologies, business goals, and constraints.\n\n"
+                    f"{context}\n\n"
+                    "Based on this, generate your architectural proposal."
+                ),
+                response_model=Proposal,
+                temperature=temperature,
+            )
+            result.paradigm_source = agent_name
+            proposals.append(result)
+            logger.info(f"  ✓ {agent_name}: '{result.architecture_name}'")
+        except Exception as e:
+            logger.error(f"Agent '{agent_name}' failed: {e}")
             continue
-        result.paradigm_source = agent_name
-        proposals.append(result)
 
     return proposals

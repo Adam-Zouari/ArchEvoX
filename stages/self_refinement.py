@@ -23,39 +23,34 @@ async def run_self_refinement(
     current = proposals
 
     for round_num in range(1, rounds + 1):
-        tasks = [
-            call_llm(
-                system_prompt=SELF_REFINEMENT_PROMPT,
-                user_message=(
-                    f"Refinement round {round_num}. "
-                    f"Here is the proposal to refine:\n\n"
-                    f"{p.model_dump_json(indent=2)}"
-                ),
-                response_model=RefinedProposal,
-                temperature=temperature,
-            )
-            for p in current
-        ]
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
+        # Run refinements SEQUENTIALLY (instructor doesn't support parallel)
         refined = []
-        for original, result in zip(current, results):
-            if isinstance(result, Exception):
+        for p in current:
+            try:
+                result = await call_llm(
+                    system_prompt=SELF_REFINEMENT_PROMPT,
+                    user_message=(
+                        f"Refinement round {round_num}. "
+                        f"Here is the proposal to refine:\n\n"
+                        f"{p.model_dump_json(indent=2)}"
+                    ),
+                    response_model=RefinedProposal,
+                    temperature=temperature,
+                )
+                result.refinement_round = round_num
+                refined.append(result)
+            except Exception as e:
                 logger.error(
                     f"Refinement round {round_num} failed for "
-                    f"'{original.architecture_name}': {result}"
+                    f"'{p.architecture_name}': {e}"
                 )
                 # On failure, wrap the original as a RefinedProposal so the pipeline continues
                 fallback = RefinedProposal(
-                    **original.model_dump(),
+                    **p.model_dump(),
                     refinements_made=[f"[Refinement round {round_num} failed]"],
                     refinement_round=round_num,
                 )
                 refined.append(fallback)
-            else:
-                result.refinement_round = round_num
-                refined.append(result)
 
         current = refined
 

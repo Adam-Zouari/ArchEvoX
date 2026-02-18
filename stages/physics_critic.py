@@ -19,36 +19,31 @@ async def run_physics_critic(
     temperature: float = 0.3,
 ) -> list[AnnotatedProposal]:
     """Annotate all proposals with physics constraints. Never reject."""
-    tasks = [
-        call_llm(
-            system_prompt=PHYSICS_CRITIC_PROMPT,
-            user_message=(
-                "Here is the architectural proposal to annotate:\n\n"
-                f"{p.model_dump_json(indent=2)}"
-            ),
-            response_model=AnnotatedProposal,
-            temperature=temperature,
-        )
-        for p in proposals
-    ]
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
+    # Run physics critics SEQUENTIALLY (instructor doesn't support parallel)
     annotated = []
-    for proposal, result in zip(proposals, results):
-        if isinstance(result, Exception):
+    for p in proposals:
+        try:
+            result = await call_llm(
+                system_prompt=PHYSICS_CRITIC_PROMPT,
+                user_message=(
+                    "Here is the architectural proposal to annotate:\n\n"
+                    f"{p.model_dump_json(indent=2)}"
+                ),
+                response_model=AnnotatedProposal,
+                temperature=temperature,
+            )
+            annotated.append(result)
+        except Exception as e:
             logger.error(
-                f"Physics critic failed for '{proposal.architecture_name}': {result}"
+                f"Physics critic failed for '{p.architecture_name}': {e}"
             )
             # Create a minimal annotation so the pipeline continues
             fallback = AnnotatedProposal(
-                proposal=proposal,
+                proposal=p,
                 annotations=[],
                 hard_constraint_violations=0,
                 overall_feasibility_note="[Physics critic evaluation failed]",
             )
             annotated.append(fallback)
-        else:
-            annotated.append(result)
 
     return annotated

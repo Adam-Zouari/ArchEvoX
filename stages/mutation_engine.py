@@ -25,8 +25,8 @@ async def run_mutations(
     if available_operators is None:
         available_operators = list(OPERATOR_PROMPTS.keys())
 
-    tasks = []
-    task_meta = []  # Track which proposal/operator for error reporting
+    # Run mutations SEQUENTIALLY (instructor doesn't support parallel)
+    mutated = []
 
     for proposal in proposals:
         k = min(operators_per_proposal, len(available_operators))
@@ -34,8 +34,8 @@ async def run_mutations(
 
         for op_name in selected_ops:
             system_prompt = OPERATOR_PROMPTS[op_name]
-            tasks.append(
-                call_llm(
+            try:
+                result = await call_llm(
                     system_prompt=system_prompt,
                     user_message=(
                         "Here is the architectural proposal to mutate:\n\n"
@@ -44,19 +44,13 @@ async def run_mutations(
                     response_model=MutatedProposal,
                     temperature=temperature,
                 )
-            )
-            task_meta.append((proposal.architecture_name, op_name))
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    mutated = []
-    for (parent_name, op_name), result in zip(task_meta, results):
-        if isinstance(result, Exception):
-            logger.error(f"Mutation '{op_name}' on '{parent_name}' failed: {result}")
-            continue
-        result.mutation_applied = op_name
-        result.parent_architecture_name = parent_name
-        result.paradigm_source = f"mutation-{op_name}"
-        mutated.append(result)
+                result.mutation_applied = op_name
+                result.parent_architecture_name = proposal.architecture_name
+                result.paradigm_source = f"mutation-{op_name}"
+                mutated.append(result)
+                logger.info(f"  ✓ Mutated '{proposal.architecture_name}' with {op_name}")
+            except Exception as e:
+                logger.error(f"Mutation '{op_name}' on '{proposal.architecture_name}' failed: {e}")
+                continue
 
     return mutated
