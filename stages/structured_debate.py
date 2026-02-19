@@ -154,6 +154,7 @@ async def run_debate_for_proposal(
         ),
         response_model=DebateJudgment,
         temperature=judge_temperature,
+        stage="structured_debate",
     )
 
     # Ensure architecture_name is set on the judgment
@@ -190,29 +191,23 @@ async def run_structured_debate(
     devil_temperature: float = 0.6,
     judge_temperature: float = 0.3,
 ) -> list[DebateResult]:
-    """Run debates for ALL proposals in parallel."""
-    logger.info(f"Structured Debate: Running {len(annotated_proposals)} debates in parallel...")
-
-    tasks = [
-        run_debate_for_proposal(
-            ap, enterprise_context,
-            advocate_temperature=advocate_temperature,
-            devil_temperature=devil_temperature,
-            judge_temperature=judge_temperature,
-        )
-        for ap in annotated_proposals
-    ]
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    """Run debates for all proposals SEQUENTIALLY (one at a time to avoid rate limits)."""
+    logger.info(f"Structured Debate: Running {len(annotated_proposals)} debates sequentially...")
 
     debate_results = []
-    for ap, result in zip(annotated_proposals, results):
-        if isinstance(result, Exception):
-            logger.error(
-                f"Debate failed for '{ap.proposal.architecture_name}': {result}"
+    for ap in annotated_proposals:
+        arch_name = ap.proposal.architecture_name
+        try:
+            result = await run_debate_for_proposal(
+                ap, enterprise_context,
+                advocate_temperature=advocate_temperature,
+                devil_temperature=devil_temperature,
+                judge_temperature=judge_temperature,
             )
+            debate_results.append(result)
+        except Exception as e:
+            logger.error(f"Debate failed for '{arch_name}': {e}")
             continue
-        debate_results.append(result)
 
     won = sum(1 for d in debate_results if d.judgment.debate_winner == "innovation")
     logger.info(

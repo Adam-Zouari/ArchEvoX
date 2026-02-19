@@ -25,7 +25,7 @@ async def run_mutations(
     if available_operators is None:
         available_operators = list(OPERATOR_PROMPTS.keys())
 
-    # Run mutations SEQUENTIALLY (instructor doesn't support parallel)
+    # Run mutations SEQUENTIALLY
     mutated = []
 
     for proposal in proposals:
@@ -43,10 +43,11 @@ async def run_mutations(
                     ),
                     response_model=MutatedProposal,
                     temperature=temperature,
+                    stage="mutation_engine",
                 )
                 result.mutation_applied = op_name
                 result.parent_architecture_name = proposal.architecture_name
-                result.paradigm_source = f"mutation-{op_name}"
+                result.paradigm_source = f"{proposal.paradigm_source}+mutation-{op_name}"
                 mutated.append(result)
                 logger.info(f"  ✓ Mutated '{proposal.architecture_name}' with {op_name}")
             except Exception as e:
