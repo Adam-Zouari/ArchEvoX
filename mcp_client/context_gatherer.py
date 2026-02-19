@@ -77,7 +77,7 @@ async def gather_paradigm_patterns(config=None):
         "event_sourcing": ["event_sourcing_patterns.md"],
         "declarative": ["declarative_patterns.md"],
         "wildcard": ["biological_analogies.md", "economic_analogies.md",
-                     "physical_analogies.md", "emerging_patterns.md"],
+                     "physical_analogies.md", "social_analogies.md", "emerging_patterns.md"],
     }
 
     results = {}

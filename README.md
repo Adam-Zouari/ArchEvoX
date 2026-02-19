@@ -38,6 +38,27 @@ cd innovation_arch_generator
 pip install -r requirements.txt
 ```
 
+### Provide Your Enterprise Documentation
+
+**⚠️ CRITICAL FIRST STEP**: The system requires YOUR organization's documentation to generate relevant proposals.
+
+1. Navigate to `input/enterprise_docs/` and `input/metadata/`
+2. Read the `README.md` files in each directory for detailed templates
+3. **Replace the example files** with your actual:
+   - Current architecture description (`architecture.md`)
+   - Business goals and priorities (`business_goals.md`)
+   - Constraints: budget, compliance, SLAs (`constraints.md`)
+   - Team skills and structure (`team.md`)
+   - Pain points and technical debt (`pain_points.md`)
+   - Schema inventory (`schema_inventory.json`)
+   - Infrastructure catalog (`infrastructure_catalog.json`)
+   - Pipeline definitions (`pipeline_definitions.yaml`)
+   - Data volume statistics (`volume_stats.json`)
+
+**The current files are EXAMPLES describing a fictional e-commerce company.** They are for reference only.
+
+See `input/README.md` for complete instructions and templates.
+
 ### Configuration
 
 #### Option A: Local models with Ollama (recommended for getting started)
@@ -569,6 +590,13 @@ pipeline:
 ---
 
 ## Customizing Your Input
+
+**⚠️ The example files currently in `input/` are for a FICTIONAL e-commerce company and must be replaced with YOUR documentation before running.**
+
+All example files have been marked with warnings. See detailed templates and instructions in:
+- `input/README.md` — Overview of what to provide
+- `input/enterprise_docs/README.md` — Enterprise documentation templates
+- `input/metadata/README.md` — Metadata file templates
 
 ### Enterprise Documentation (`input/enterprise_docs/`)
 

@@ -1,10 +1,21 @@
 # LLM Configuration
-# For Ollama (local):  model: "ollama_chat/qwen3:1.7b"  (or any model you have installed)
-# For Anthropic:       model: "anthropic/claude-sonnet-4-20250514"
-# For OpenAI:          model: "openai/gpt-4"
 llm:
-  model: "ollama_chat/qwen3:1.7b"
-  api_base: "http://localhost:11434"   # Ollama default. Remove or set to null for cloud APIs.
+  model: "mistral/mistral-large-latest"  # Mistral's most capable model
+  api_base: null  # Mistral uses their own endpoint (litellm knows it)
+
+  # API Key distribution across stages (to avoid rate limits)
+  api_key_assignments:
+    intent_agent: "MISTRAL_API_KEY_1"
+    prompt_enhancement: "MISTRAL_API_KEY_1"
+    paradigm_agents: "MISTRAL_API_KEY_1"
+    mutation_engine: "MISTRAL_API_KEY_2"
+    diversity_archive: "MISTRAL_API_KEY_2"
+    self_refinement: "MISTRAL_API_KEY_3"
+    physics_critic: "MISTRAL_API_KEY_4"
+    structured_debate: "MISTRAL_API_KEY_5"
+    domain_critics: "MISTRAL_API_KEY_4"
+    portfolio_ranker: "MISTRAL_API_KEY_1"
+
   temperature:
     paradigm_agents: 0.9
     mutation_engine: 0.85
@@ -24,46 +35,46 @@ mcp:
 
 # Pipeline Configuration
 pipeline:
-  # NEW — Stage 0a
+  # Stage 0a - Intent Agent
   intent_agent:
-    enabled: false  # DISABLED for faster testing with local model
+    enabled: true  # ENABLED with dedicated API key
     temperature: 0.4
 
-  # NEW — Stage 0b
+  # Stage 0b - Prompt Enhancement
   prompt_enhancement:
-    enabled: false  # DISABLED for faster testing with local model
+    enabled: true  # ENABLED with dedicated API key
 
-  # EXISTING — unchanged
+  # Stage 1 - Paradigm Agents
   paradigm_agents:
     enabled_agents: ["streaming", "event_sourcing", "declarative", "wildcard"]
 
-  # EXISTING — unchanged
+  # Stage 2 - Mutation Engine
   mutation:
-    operators_per_proposal: 1  # REDUCED from 3 to 1 for faster testing
+    operators_per_proposal: 1  # RESTORED to full value
     available_operators: ["invert", "merge", "eliminate", "analogize", "temporalize", "abstract"]
 
-  # NEW — Stage 2.5
+  # Stage 2.5 - Diversity Archive
   diversity_archive:
-    enabled: false  # DISABLED for faster testing with local model
-    top_k: 10
+    enabled: true  # ENABLED with dedicated API key
+    top_k: 10  # RESTORED to full value
     temperature: 0.2
 
-  # EXISTING — unchanged
+  # Stage 3 - Self-Refinement
   self_refinement:
-    rounds: 1  # REDUCED from 2 to 1 for faster testing
+    rounds: 1  # RESTORED to full value
 
-  # NEW — Stage 4.5
+  # Stage 4.5 - Structured Debate
   structured_debate:
-    enabled: false  # DISABLED for faster testing with local model
+    enabled: true  # ENABLED with dedicated API key
     temperature:
       advocate: 0.6
       devil_advocate: 0.6
       judge: 0.3
     rounds: 3
 
-  # NEW — Stage 4.7
+  # Stage 4.7 - Domain Critics
   domain_critics:
-    enabled: false  # DISABLED for faster testing with local model
+    enabled: true  # ENABLED with dedicated API key
     critics: ["security", "cost", "org_readiness", "data_quality"]
     temperature: 0.3
 
