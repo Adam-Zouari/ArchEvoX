@@ -4,3 +4,8 @@ venv/
 
 # Environment variables (contains API keys)
 .env
+
+
+outputs/
+
+pipeline_run.log
