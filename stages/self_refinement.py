@@ -36,6 +36,7 @@ async def run_self_refinement(
                     ),
                     response_model=RefinedProposal,
                     temperature=temperature,
+                    stage="self_refinement",
                 )
                 result.refinement_round = round_num
                 refined.append(result)

@@ -31,6 +31,7 @@ async def run_physics_critic(
                 ),
                 response_model=AnnotatedProposal,
                 temperature=temperature,
+                stage="physics_critic",
             )
             annotated.append(result)
         except Exception as e:

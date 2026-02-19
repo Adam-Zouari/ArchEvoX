@@ -34,6 +34,7 @@ async def run_intent_agent(
         ),
         response_model=IntentBrief,
         temperature=temperature,
+        stage="intent_agent",
     )
 
     logger.info(

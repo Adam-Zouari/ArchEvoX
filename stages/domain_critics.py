@@ -51,6 +51,7 @@ async def run_domain_critic(
         ),
         response_model=DomainCriticResult,
         temperature=temperature,
+        stage="domain_critics",
     )
 
     # Ensure fields are set correctly

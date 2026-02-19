@@ -48,7 +48,7 @@ async def run_paradigm_agents(
             context = enterprise_context + "\n\n---\n\n" + patterns_context
         agents.append((agent_name, system_prompt, context))
 
-    # Run agents SEQUENTIALLY (instructor doesn't support parallel)
+    # Run agents SEQUENTIALLY
     proposals = []
     for agent_name, system_prompt, context in agents:
         logger.info(f"  Running agent: {agent_name}...")
@@ -63,6 +63,7 @@ async def run_paradigm_agents(
                 ),
                 response_model=Proposal,
                 temperature=temperature,
+                stage="paradigm_agents",
             )
             result.paradigm_source = agent_name
             proposals.append(result)
