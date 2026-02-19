@@ -6,6 +6,7 @@ Real-time visualization of the multi-agent pipeline
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import pandas as pd
 from pathlib import Path
 import json
 import time
@@ -405,7 +406,7 @@ with tab3:
                         })
 
             if scores_data:
-                import pandas as pd
+                # pandas imported at top level
                 df = pd.DataFrame(scores_data)
                 fig = px.box(df, x='Metric', y='Score', color='Metric')
                 st.plotly_chart(fig, width="stretch")
@@ -519,7 +520,7 @@ with tab3:
                 })
 
         if timeline_data:
-            import pandas as pd
+            # pandas imported at top level
             df = pd.DataFrame(timeline_data)
             df['Start'] = pd.to_datetime(df['Start'])
             df['End'] = pd.to_datetime(df['End'])
