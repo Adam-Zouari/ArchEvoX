@@ -12,7 +12,6 @@ from models.schemas import (
     Proposal,
     MutatedProposal,
     DiversityScores,
-    DiversityArchiveInput,
 )
 from prompts.diversity_scorer import DIVERSITY_SCORER_PROMPT
 
@@ -53,28 +52,48 @@ async def run_diversity_archive(
         )
         return proposals
 
-    # Step 1: Score all proposals on 3 behavioral dimensions
-    serialized = "\n\n---\n\n".join(
-        f"Proposal: {p.architecture_name}\n{p.model_dump_json(indent=2)}"
-        for p in proposals
-    )
-
-    logger.info(f"Diversity Archive: Scoring {len(proposals)} proposals on behavioral dimensions...")
-    scores = await call_llm(
-        system_prompt=DIVERSITY_SCORER_PROMPT,
-        user_message=f"Score the following {len(proposals)} proposals:\n\n{serialized}",
-        response_model=DiversityArchiveInput,
-        temperature=temperature,
-    )
+    # Step 1: Score each proposal individually (one LLM call per proposal)
+    logger.info(f"Diversity Archive: Scoring {len(proposals)} proposals one at a time...")
+    all_scores: list[DiversityScores] = []
+    for p in proposals:
+        try:
+            ds = await call_llm(
+                system_prompt=DIVERSITY_SCORER_PROMPT,
+                user_message=(
+                    f"Score this single proposal:\n\n"
+                    f"Proposal: {p.architecture_name}\n{p.model_dump_json(indent=2)}"
+                ),
+                response_model=DiversityScores,
+                temperature=temperature,
+                stage="diversity_archive",
+            )
+            ds.architecture_name = p.architecture_name  # Ensure exact name
+            all_scores.append(ds)
+            logger.info(
+                f"  Scored '{p.architecture_name}': "
+                f"novelty={ds.paradigm_novelty}, complexity={ds.structural_complexity}, "
+                f"distance={ds.migration_distance}, quality={ds.quality_heuristic:.1f}"
+            )
+        except Exception as e:
+            logger.error(f"Diversity scoring failed for '{p.architecture_name}': {e}")
+            # Assign default mid-range scores so the proposal isn't lost
+            all_scores.append(DiversityScores(
+                architecture_name=p.architecture_name,
+                paradigm_novelty=3,
+                structural_complexity=3,
+                migration_distance=3,
+                quality_heuristic=5.0,
+                one_line_summary=f"{p.architecture_name} (scoring failed)",
+            ))
 
     # Build name->scores lookup
     scores_by_name: dict[str, DiversityScores] = {
-        ds.architecture_name: ds for ds in scores.proposals
+        ds.architecture_name: ds for ds in all_scores
     }
 
     # Step 2-3: Build grid, keep best per cell
     grid: dict[tuple[int, int, int], DiversityScores] = {}
-    for ds in scores.proposals:
+    for ds in all_scores:
         cell = (ds.paradigm_novelty, ds.structural_complexity, ds.migration_distance)
         if cell not in grid or ds.quality_heuristic > grid[cell].quality_heuristic:
             grid[cell] = ds

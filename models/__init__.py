@@ -14,6 +14,9 @@ from .schemas import (
     AnnotatedProposal,
     ScoredProposal,
     Portfolio,
+    # Lightweight scoring (Stage 5)
+    ProposalScore,
+    ExecutiveSummary,
     # Diversity Archive (Stage 2.5)
     DiversityScores,
     DiversityArchiveInput,
@@ -44,6 +47,8 @@ __all__ = [
     "AnnotatedProposal",
     "ScoredProposal",
     "Portfolio",
+    "ProposalScore",
+    "ExecutiveSummary",
     "DiversityScores",
     "DiversityArchiveInput",
     "DiversityArchiveResult",

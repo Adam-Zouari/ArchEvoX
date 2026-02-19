@@ -233,6 +233,47 @@ class Portfolio(BaseModel):
 
 
 # ──────────────────────────────────────────────
+# Lightweight LLM-facing scoring schemas
+# (The LLM returns ONLY scores; code reassembles full Portfolio)
+# ──────────────────────────────────────────────
+
+class ProposalScore(BaseModel):
+    """Per-proposal scores returned by the LLM.
+    The LLM evaluates one proposal at a time and returns this."""
+    architecture_name: str = Field(
+        description="Exact architecture name from the input proposals"
+    )
+    innovation_score: float = Field(
+        description="0-10 score for paradigm novelty and structural innovation"
+    )
+    feasibility_score: float = Field(
+        description="0-10 score for technical feasibility given constraints"
+    )
+    business_alignment_score: float = Field(
+        description="0-10 score for alignment with stated business goals"
+    )
+    migration_complexity_score: float = Field(
+        description="0-10 score where 10 = trivial migration, 1 = complete rebuild"
+    )
+    tier: str = Field(
+        description="'conservative', 'moderate_innovation', or 'radical'"
+    )
+    one_line_summary: str = Field(
+        description="One sentence explaining what makes this proposal distinctive"
+    )
+
+
+class ExecutiveSummary(BaseModel):
+    """Executive summary generated after all proposals are scored."""
+    executive_summary: str = Field(
+        description=(
+            "2-3 paragraph summary of the portfolio, highlighting the "
+            "innovation-risk frontier and key tradeoffs between the top options"
+        )
+    )
+
+
+# ──────────────────────────────────────────────
 # Diversity Archive (Stage 2.5) — MAP-Elites
 # ──────────────────────────────────────────────
 
